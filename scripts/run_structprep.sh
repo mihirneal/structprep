@@ -15,7 +15,7 @@ Optional:
   -e, --sessions    Quoted space-separated session IDs (e.g. "ses-01 ses-02").
   -M, --modalities  Modalities (CSV). Default: T1w,T2w,FLAIR
   -a, --mask-agg    Mask aggressiveness: liberal|medium|conservative (default: liberal)
-  -b, --fs-bin      Path to FreeSurfer bin (contains mri_coreg, mri_vol2vol)
+  -b, --fs-bin      Path to FreeSurfer bin (contains mri_coreg, mri_vol2vol) (default: /opt/freesurfer/bin)
   -n, --iso-mm      Isotropic voxel size (mm). Default: 1.0
   -p, --shape       In-plane shape HxW (default: 256x256)
       --keep-depth  Preserve depth (D); only crop/pad H and W (default)
@@ -40,19 +40,41 @@ USAGE
 }
 
 # Defaults
-INPUT_DIR="/home/mihirneal/ADNI_sample"
-OUTPUT_DIR="/home/mihirneal/ADNI_struct"
+INPUT_DIR="/home/mihirneal/ADNI-part1/part1"
+OUTPUT_DIR="/data/ADNI_struct"
 SUBJECTS=""
 SESSIONS=""
 MODALITIES="T1w,FLAIR"
 MASK_AGG="liberal"
-FS_BIN=""
+FS_BIN="/opt/freesurfer/bin"
 ISO_MM="1.0"
 SHAPE="256x256"
 N_JOBS="auto"
 OMP_THREADS="auto"
 DRY_RUN=0
 KEEP_DEPTH=1
+
+# Ensure FreeSurfer environment is available in non-interactive shells
+# Many users have it only in their interactive shell rc (e.g., .zshrc),
+# but this script runs under /bin/sh and via subprocess (uv), which won't inherit it.
+# Try to source SetUpFreeSurfer.sh if FREESURFER_HOME is set or at /opt/freesurfer.
+if [ -z "${FREESURFER_HOME:-}" ]; then
+  if [ -d "/opt/freesurfer" ] && [ -f "/opt/freesurfer/SetUpFreeSurfer.sh" ]; then
+    export FREESURFER_HOME="/opt/freesurfer"
+    # Temporarily disable nounset while sourcing FreeSurfer setup
+    _orig_opts="$-"
+    set +u
+    . "/opt/freesurfer/SetUpFreeSurfer.sh"
+    case "$_orig_opts" in *u*) set -u ;; esac
+  fi
+else
+  if [ -f "$FREESURFER_HOME/SetUpFreeSurfer.sh" ]; then
+    _orig_opts="$-"
+    set +u
+    . "$FREESURFER_HOME/SetUpFreeSurfer.sh"
+    case "$_orig_opts" in *u*) set -u ;; esac
+  fi
+fi
 
 parse_args() {
   while [ $# -gt 0 ]; do

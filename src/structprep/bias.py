@@ -12,9 +12,11 @@ def n4_bias_correct(in_file: Path, out_dir: Path, dry_run: bool = False) -> Path
 
     start = time.time()
     img = sitk.ReadImage(str(in_file))
-    mask = sitk.OtsuThreshold(img, 0, 1, 200)
+    img_f = sitk.Cast(img, sitk.sitkFloat32)
+    mask = sitk.OtsuThreshold(img_f, 0, 1, 200)
+    mask = sitk.Cast(mask, sitk.sitkUInt8)
     corrector = sitk.N4BiasFieldCorrectionImageFilter()
-    out = corrector.Execute(img, mask)
+    out = corrector.Execute(img_f, mask)
     sitk.WriteImage(out, str(out_path))
 
     # Write a lightweight JSON log for N4
